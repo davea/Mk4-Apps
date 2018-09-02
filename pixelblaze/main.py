@@ -10,7 +10,14 @@ import dialogs
 import wifi
 import websockets
 
-print("PixelBlaze init")
+wifi.connect()
+print("wifi connected")
+ugfx_helper.init()
+print("ugfx init")
+
+websockets.enable_debug()
+
+pixelblaze = None
 
 class PixelBlaze:
     _patterns = None
@@ -77,15 +84,6 @@ class PixelBlaze:
         print("set brightness to {}".format(brightness))
 
 
-
-
-wifi.connect()
-print("wifi connected")
-ugfx_helper.init()
-print("ugfx init")
-
-
-pixelblaze = None
 def connect_pixelblaze():
     global pixelblaze
     ugfx.clear(ugfx.html_color(0x7c1143))
