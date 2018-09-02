@@ -22,11 +22,11 @@ pixelblaze = None
 class PixelBlaze:
     _patterns = None
     _ws = None
+    _url = None
 
     def __init__(self, url):
         super().__init__()
-        self._ws = websockets.connect(url)
-        print("Connected to {}".format(url))
+        self._url = url
 
     def __del__(self):
         try:
@@ -36,19 +36,31 @@ class PixelBlaze:
         super().__del__()
 
     @property
+    def ws(self):
+        try:
+            if self._ws.open:
+                return self._ws
+            else:
+                raise Exception("Not connected yet")
+        except:
+            self._ws = websockets.connect(self._url)
+            self._ws.settimeout(5)
+            print("Connected to {}".format(self._url))
+        return self._ws
+
+
+    @property
     def patterns(self):
         if self._patterns:
             return self._patterns
 
         print("fetching patterns...")
-        # ws.settimeout(3)
-        # print("set sockettimeout to 3 seconds")
-        self._ws.send('{"listPrograms": true}')
+        self.ws.send('{"listPrograms": true}')
         print("sent listPrograms frame")
 
         self._patterns = []
         while True:
-            frame = self._ws.recv()
+            frame = self.ws.recv()
             print("Received frame")
             print("frame length {}".format(len(frame)))
             if isinstance(frame, bytes):
@@ -71,7 +83,7 @@ class PixelBlaze:
         return self._patterns
 
     def set_pattern(self, pid):
-        self._ws.send("""{{"activeProgramId": "{}", "save": true}}""".format(pid))
+        self.ws.send("""{{"activeProgramId": "{}", "save": true}}""".format(pid))
         print("set pattern to {}".format(pid))
 
     @property
@@ -80,7 +92,7 @@ class PixelBlaze:
 
     @brightness.setter
     def brightness(self, brightness):
-        self._ws.send("""{{"brightness": {} }}""".format(brightness))
+        self.ws.send("""{{"brightness": {} }}""".format(brightness))
         print("set brightness to {}".format(brightness))
 
 

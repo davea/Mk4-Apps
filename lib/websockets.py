@@ -76,7 +76,11 @@ class Websocket:
         self.close()
 
     def settimeout(self, timeout):
-        self._sock.settimeout(timeout)
+        try:
+            self._sock.settimeout(timeout)
+        except AttributeError:
+            debug_log("socket.settimeout not supported on this platform")
+            pass
 
     def read_frame(self, max_size=None):
         """
