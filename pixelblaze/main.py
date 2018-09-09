@@ -2,7 +2,7 @@
 
 ___name___         = "Pixelblaze"
 ___license___      = "MIT"
-___dependencies___ = ["wifi", "websockets", "ugfx_helper", "sleep", "app"]
+___dependencies___ = ["wifi", "websockets", "ugfx_helper", "sleep", "app", "database"]
 ___categories___   = ["LEDs"]
 
 import ugfx_helper, ugfx
@@ -12,6 +12,7 @@ import websockets
 from tilda import Buttons
 import app
 import sleep
+import database
 
 wifi.connect()
 print("wifi connected")
@@ -105,7 +106,7 @@ def connect_pixelblaze():
         return
     ugfx.clear(ugfx.html_color(0x800080))
     with dialogs.WaitingMessage(text="Please wait...", title="Connecting Pixelblaze") as message:
-        pixelblaze = PixelBlaze("ws://pixelblaze.davea.me:81/")
+        pixelblaze = PixelBlaze(database.get("pixelblaze.url"))
 
 
 def choose_pattern():
@@ -170,6 +171,14 @@ def setup_interrupts():
 def disable_interrupts():
     for button in handlers.keys():
         Buttons.disable_interrupt(button)
+
+def get_pixelblaze_url():
+    hostname = dialogs.prompt_text("Pixelblaze hostname:")
+    url = "ws://{}:81/".format(hostname)
+    database.set("pixelblaze.url", url)
+
+if not database.get("pixelblaze.url"):
+    get_pixelblaze_url()
 
 main_screen()
 while True:
