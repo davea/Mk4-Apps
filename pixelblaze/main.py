@@ -9,6 +9,9 @@ import ugfx_helper, ugfx
 import dialogs
 import wifi
 import websockets
+from tilda import Buttons
+import app
+import sleep
 
 wifi.connect()
 print("wifi connected")
@@ -98,19 +101,21 @@ class PixelBlaze:
 
 def connect_pixelblaze():
     global pixelblaze
-    ugfx.clear(ugfx.html_color(0x7c1143))
+    if pixelblaze is not None:
+        return
+    ugfx.clear(ugfx.html_color(0x800080))
     with dialogs.WaitingMessage(text="Please wait...", title="Connecting Pixelblaze") as message:
         pixelblaze = PixelBlaze("ws://pixelblaze.davea.me:81/")
 
 
 def choose_pattern():
-    ugfx.clear(ugfx.html_color(0x7c1143))
+    connect_pixelblaze()
+    ugfx.clear(ugfx.html_color(0x800080))
 
     with dialogs.WaitingMessage(text="Please wait...", title="Downloading patterns") as message:
         menu_items = []
         for pid, name in pixelblaze.patterns:
             menu_items.append({'title': name, 'pid': pid})
-            message.text = "Loaded {} patterns so far...".format(len(menu_items))
 
     option = dialogs.prompt_option(menu_items, none_text="Back", text="Available patterns", title="Select pattern")
 
@@ -120,7 +125,8 @@ def choose_pattern():
         dialogs.notice("""{} activated""".format(option['title']), title="Pattern selected", close_text="OK")
 
 def choose_brightness():
-    ugfx.clear(ugfx.html_color(0x7c1143))
+    connect_pixelblaze()
+    ugfx.clear(ugfx.html_color(0x800080))
     with dialogs.WaitingMessage(text="Getting brightness...", title="Communicating") as message:
         brightness = pixelblaze.brightness
     new_brightness = dialogs.prompt_text("Brightness:", init_text=str(brightness))
@@ -129,16 +135,45 @@ def choose_brightness():
             pixelblaze.brightness = new_brightness
 
 
-def choose_function():
-    patterns = dialogs.prompt_boolean("Choose function", title="Pixelblaze", true_text="Patterns", false_text="Brightness")
-    if patterns:
-        choose_pattern()
-    else:
-        choose_brightness()
+def main_screen():
+    print("main_screen")
+    setup_interrupts()
+    ugfx.clear(ugfx.html_color(0x800080))
+
+    ugfx.Label(0, 15, ugfx.width(), 30, "Pixelblaze", justification=ugfx.Label.CENTER)
+
+    ugfx.Label(0, 60, ugfx.width(), 30, "A: Patterns", justification=ugfx.Label.LEFT)
+    ugfx.Label(0, 105, ugfx.width(), 30, "B: Brightness", justification=ugfx.Label.LEFT)
 
 
+handlers = {
+    Buttons.BTN_A: choose_pattern,
+    Buttons.BTN_B: choose_brightness,
+    Buttons.BTN_Menu: app.restart_to_default,
+}
+
+def button_press(button):
+    handler = handlers.get(button)
+    if handler is not None:
+        disable_interrupts()
+        disable_interrupts()
+        try:
+            handler()
+        except Exception:
+            pass
+    main_screen()
+
+def setup_interrupts():
+    for button in handlers.keys():
+        Buttons.enable_interrupt(button, button_press, on_press=True, on_release=False)
+
+def disable_interrupts():
+    for button in handlers.keys():
+        Buttons.disable_interrupt(button)
+
+main_screen()
 while True:
-    if pixelblaze is None:
-        connect_pixelblaze()
+    sleep.wfi()
 
-    choose_function()
+ugfx.clear()
+app.restart_to_default()
